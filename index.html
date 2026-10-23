@@ -1,0 +1,865 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f2b9c3">
+</head>
+<body>
+<title>Make a Hayley Williams Poster</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Turn your concert photo into a collage poster with the Ms.Williams font. Phone or printable sizes, made on your phone.">
+<style>
+/* Toolbox layout (phone first) on a green self-healing cutting mat: size picker, title and Save on
+   top; the poster in the middle; one dark options bar that changes with the
+   tool or the selected piece; six labelled tool tabs at the bottom.
+   The poster: coloured crumpled paper, the photo (in a frame or filling the page, optionally cut
+   out), crayon drawings, text and stickers. Every piece can be moved and sent forward or back.
+   One deliberate cutting-mat look, so no dark variant. */
+:root {
+  color-scheme: light;
+  --mat: #2e6a55;                       /* cutting mat green */
+  --mat-line: rgba(255, 255, 255, .14);
+  --mat-line-strong: rgba(255, 255, 255, .3);
+  --mat-mark: #f3d65d;                  /* ruler yellow, used for focus rings */
+  --ink: #1d1b1b;
+  --pink: #f49ac1;
+  --sheet: #fff5f8;                     /* tab bar */
+  --bar: #1d1b1b;                       /* options bar */
+  --dim: rgba(20, 16, 18, .62);
+  --display: 'Ms.Williams Shadow', 'Ms.Williams', sans-serif;
+  --label: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+@font-face { font-family: 'Ms.Williams Shadow'; src: url(fonts/MsWilliamsShadow-Regular.woff2) format('woff2'); font-display: block; }
+@font-face { font-family: 'Ms.Williams'; src: url(fonts/MsWilliams-Regular.woff2) format('woff2'); font-display: block; }
+@font-face { font-family: 'Ms.Williams Layer'; src: url(fonts/MsWilliams-Layer.woff2) format('woff2'); font-display: block; }
+@font-face { font-family: 'Geist Mono'; src: url(fonts/GeistMono-Bold.woff2) format('woff2'); font-weight: 700; font-display: swap; }
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; overflow: hidden; }   /* an app screen: nothing scrolls */
+body {
+  color: var(--ink); font: 700 12px/1.3 var(--label); touch-action: manipulation;
+  background-color: var(--mat);
+  /* 1 cm grid with a stronger line every 5 cm, like a real mat */
+  background-image:
+    linear-gradient(var(--mat-line-strong) 1.5px, transparent 1.5px),
+    linear-gradient(90deg, var(--mat-line-strong) 1.5px, transparent 1.5px),
+    linear-gradient(var(--mat-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--mat-line) 1px, transparent 1px);
+  background-size: 160px 160px, 160px 160px, 32px 32px, 32px 32px;
+  background-position: 18px 18px;
+}
+.app { height: 100svh; display: flex; flex-direction: column; padding-top: max(10px, env(safe-area-inset-top, 0px)); }
+button, select { font: inherit; color: inherit; }
+
+/* top bar */
+.top { flex: none; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px;
+  padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); }
+h1 { margin: 0; font: 400 clamp(20px, 6vw, 30px)/1 var(--display); transform: rotate(-2deg); white-space: nowrap; }
+.strip {
+  font: 700 11px/1 var(--label); letter-spacing: .02em; text-transform: uppercase; color: var(--ink);
+  border: 0; cursor: pointer; padding: 9px 10px; min-height: 36px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-align: center;
+  background: url(assets/paper-strip.webp) center / 100% 100%; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .25)); position: relative;
+}
+.strip:active { transform: translateY(1px) scale(.98); }
+.size { justify-self: start; }
+.size select { appearance: none; -webkit-appearance: none; border: 0; background: transparent; font: inherit; text-transform: uppercase; padding: 0 14px 0 0; cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%), linear-gradient(135deg, var(--ink) 50%, transparent 50%);
+  background-size: 5px 5px; background-position: right 4px center, right 0 center; background-repeat: no-repeat; }
+.save { justify-self: end; background: var(--pink); filter: drop-shadow(0 2px 2px rgba(0,0,0,.3)); border-radius: 3px; }
+.ico { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.strip .ico { width: 14px; height: 14px; }
+
+/* poster */
+.stagewrap { flex: 1; min-height: 0; display: grid; place-items: center; padding: 10px 0 6px; }
+.stagebox { position: relative; }       /* width / height set by fit() */
+.deco { position: absolute; pointer-events: none; user-select: none; z-index: 0; }
+.deco.star { width: 30%; left: -19%; top: -5%; transform: rotate(-12deg); }
+#poster { position: relative; z-index: 1; display: block; width: 100%; height: 100%; touch-action: none; box-shadow: 0 8px 22px rgba(0, 0, 0, .35); background: #fff; }
+.stagebox.drawing #poster, .stagebox.cutting #poster { cursor: crosshair; }
+.frame-upload { position: absolute; z-index: 2; display: grid; place-items: center; pointer-events: none; }
+.frame-upload .strip { pointer-events: auto; }
+.strip input, .opt input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+#status { flex: none; min-height: 1.4em; text-align: center; color: #fff; font-size: 11px; padding: 0 16px 6px; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+
+/* options bar: one row of choices for the open tool or the selected piece */
+.bar { flex: none; align-self: center; width: calc(100% - 20px); max-width: 560px; background: var(--bar); color: #fff;
+  border-radius: 14px; padding: 8px; display: grid; gap: 6px; }
+.bar small { text-align: center; font-size: 10px; opacity: .75; text-transform: uppercase; letter-spacing: .05em; }
+.opts { display: flex; gap: 2px; justify-content: center; flex-wrap: wrap; }
+.group { display: grid; gap: 4px; }
+.opt { position: relative; border: 0; background: transparent; color: #fff; border-radius: 8px; padding: 6px 2px; min-width: 50px; min-height: 44px; cursor: pointer;
+  display: inline-grid; justify-items: center; align-content: center; gap: 3px; font-size: 9.5px; text-transform: uppercase; letter-spacing: .03em; }
+.opt:hover { background: rgba(255,255,255,.08); }
+.opt[aria-pressed="true"] { background: var(--pink); color: var(--ink); }
+.opt:disabled { opacity: .35; cursor: default; background: transparent; }
+.opt b { font-size: 14px; line-height: 18px; }
+.opt:focus-visible, .tab:focus-visible, .strip:focus-visible, .swatch:focus-visible, .stk:focus-visible { outline: 2px dashed var(--mat-mark); outline-offset: 2px; }
+.swatches-row small { font-size: 10px; opacity: .75; text-transform: uppercase; letter-spacing: .05em; }
+.swatches-row { display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; padding: 4px 0; }
+.swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; padding: 0; cursor: pointer; flex: none; }
+.swatch[aria-pressed="true"] { transform: scale(1.2); box-shadow: 0 0 0 2px var(--pink); }
+.stks { display: flex; gap: 6px; overflow-x: auto; padding: 2px; scrollbar-width: none; justify-content: safe center; }
+.stk { flex: none; width: 46px; height: 46px; border: 0; background: rgba(255,255,255,.12); border-radius: 10px; padding: 4px; display: grid; place-items: center; cursor: pointer; }
+.stk img { width: 100%; height: 100%; object-fit: contain; }
+.stk span { font: 400 28px/1 var(--display); }
+.stk:active { transform: scale(.94); }
+
+/* tool tabs */
+.tabs { flex: none; margin-top: 8px; background: var(--sheet); border-radius: 16px 16px 0 0; box-shadow: 0 -4px 14px rgba(0,0,0,.2);
+  padding: 6px max(8px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px));
+  display: flex; justify-content: center; gap: 2px; }
+.tab { flex: 1; max-width: 96px; border: 0; background: transparent; color: #6a5a5e; border-radius: 10px; padding: 7px 0 6px; cursor: pointer; display: grid; justify-items: center; gap: 3px;
+  font-size: clamp(8.5px, 2.5vw, 10px); text-transform: uppercase; letter-spacing: .02em; }
+.tab[aria-pressed="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+.tab[aria-pressed="true"] .ico { color: #d0457f; }
+
+/* Instagram-style text editor */
+.editor { position: fixed; inset: 0; z-index: 20; background: var(--dim); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  display: flex; flex-direction: column; padding: max(14px, env(safe-area-inset-top, 0px)) 16px var(--kb, 16px); }
+.editor-top { display: flex; justify-content: flex-end; }
+.done { font: 700 16px var(--label); color: #fff; background: none; border: 0; padding: 10px 6px; cursor: pointer; }
+.typearea { flex: 1; display: grid; place-items: center; min-height: 0; }
+.typebox { position: relative; display: grid; width: 100%; max-width: 92vw; }
+.typebox > * { grid-area: 1 / 1; min-width: 0; width: 100%; font: 400 var(--fs, 52px)/1.08 'Ms.Williams', sans-serif; text-align: center; white-space: pre-wrap; overflow-wrap: anywhere; padding: 6px; margin: 0; border: 0; }
+.typebox .layer { font-family: 'Ms.Williams Layer', sans-serif; color: #2b2727; pointer-events: none; }
+.typebox .face { color: var(--tc, #f49ac1); pointer-events: none; }
+.typebox textarea { background: transparent; color: transparent; caret-color: #fff; resize: none; outline: none; overflow: hidden; height: 100%; }
+.typebox textarea::placeholder { color: rgba(255,255,255,.55); }
+.hint { color: #fff; opacity: .75; text-align: center; font-size: 11px; margin: 0; }
+.tcolors { display: flex; justify-content: center; gap: 12px; padding-block: 12px 4px; }
+.tcolors button { width: 30px; height: 30px; border-radius: 50%; border: 3px solid #fff; padding: 0; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+.tcolors button[aria-pressed="true"] { transform: scale(1.25); }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-photo" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 8"/></symbol>
+    <symbol id="i-cut" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></symbol>
+    <symbol id="i-draw" viewBox="0 0 24 24"><path d="M3 17c3-3 4 2 7-1s1-6 4-8 4 1 7-2"/></symbol>
+    <symbol id="i-text" viewBox="0 0 24 24"><path d="M4 7V5h16v2M12 5v14M9 19h6"/></symbol>
+    <symbol id="i-stk" viewBox="0 0 24 24"><path d="m12 3 2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></symbol>
+    <symbol id="i-paper" viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5z"/><path d="M15 3v4h4"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
+    <symbol id="i-bin" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+    <symbol id="i-dup" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 16V6a2 2 0 0 1 2-2h10"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></symbol>
+    <symbol id="i-frame" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="1"/><rect x="7" y="6" width="10" height="9"/></symbol>
+    <symbol id="i-full" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="m4 17 5-5 4 4 3-3 4 4"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></symbol>
+    <symbol id="i-thick" viewBox="0 0 24 24"><path d="M4 18c4-4 6 2 9-2s4-6 7-8" stroke-width="4"/></symbol>
+    <symbol id="i-texture" viewBox="0 0 24 24"><path d="M4 6c3 2 5-2 8 0s5 2 8 0M4 12c3 2 5-2 8 0s5 2 8 0M4 18c3 2 5-2 8 0s5 2 8 0"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+  <div class="top">
+    <label class="strip size"><svg class="ico"><use href="#i-paper"/></svg>
+      <select id="size" aria-label="Poster size">
+        <option value="phone">Phone</option>
+        <option value="letter">Letter</option>
+        <option value="a4">A4</option>
+      </select>
+    </label>
+    <h1>Make a poster</h1>
+    <button class="strip save" type="button" id="save"><svg class="ico"><use href="#i-save"/></svg>Save</button>
+  </div>
+
+  <div class="stagewrap" id="stagewrap">
+    <div class="stagebox" id="stagebox">
+      <img class="deco star" src="assets/star.webp" alt="">
+      <canvas id="poster" aria-label="Your poster. Tap a piece to select it, drag to move it."></canvas>
+      <div class="frame-upload" id="frameUpload"><label class="strip">Add your photo<input type="file" accept="image/*" data-upload></label></div>
+    </div>
+  </div>
+  <div id="status" role="status"></div>
+
+  <div class="bar" id="bar">
+    <small id="barTitle">Start with your photo</small>
+
+    <div class="group" data-for="photo" hidden>
+    <div class="opts">
+      <span class="opt"><svg class="ico"><use href="#i-plus"/></svg>New<input type="file" accept="image/*" data-upload aria-label="New photo"></span>
+      <button class="opt" type="button" data-photo-mode="frame" aria-pressed="true"><svg class="ico"><use href="#i-frame"/></svg>Framed</button>
+      <button class="opt" type="button" data-photo-mode="full" aria-pressed="false"><svg class="ico"><use href="#i-full"/></svg>Full page</button>
+      <button class="opt" type="button" data-fx="bw" aria-pressed="false"><b>B/W</b>B&amp;W</button>
+      <button class="opt" type="button" data-fx="duo" aria-pressed="false"><b>◐</b>Duotone</button>
+      <button class="opt" type="button" data-fx="grain" aria-pressed="false"><b>░</b>Grain</button>
+    </div>
+    <div class="swatches-row" id="duoColors" role="group" aria-label="Duotone colour" hidden>
+      <small>Duotone</small>
+      <button class="swatch" type="button" data-duo="pink" style="background:#f49ac1" aria-label="Pink duotone"></button>
+      <button class="swatch" type="button" data-duo="yellow" style="background:#f6c12e" aria-label="Yellow duotone"></button>
+      <button class="swatch" type="button" data-duo="red" style="background:#e5484d" aria-label="Red duotone"></button>
+    </div>
+    </div>
+
+    <div class="opts" data-for="cut" hidden>
+      <button class="opt" type="button" id="uncut" disabled><svg class="ico"><use href="#i-undo"/></svg>Undo cut</button>
+      <button class="opt" type="button" data-close><svg class="ico"><use href="#i-check"/></svg>Done</button>
+    </div>
+
+    <div class="group" data-for="draw" hidden>
+      <div class="swatches-row" id="crayons" role="group" aria-label="Crayon colour"></div>
+      <div class="opts">
+        <button class="opt" type="button" id="thick" aria-pressed="false"><svg class="ico"><use href="#i-thick"/></svg>Thick</button>
+        <button class="opt" type="button" id="undoDraw"><svg class="ico"><use href="#i-undo"/></svg>Undo</button>
+        <button class="opt" type="button" data-close><svg class="ico"><use href="#i-check"/></svg>Done</button>
+      </div>
+    </div>
+
+    <div class="opts" data-for="text" hidden>
+      <button class="opt" type="button" id="newText"><svg class="ico"><use href="#i-plus"/></svg>Add text</button>
+      <button class="opt" type="button" data-close><svg class="ico"><use href="#i-check"/></svg>Done</button>
+    </div>
+
+    <div class="stks" data-for="stickers" id="stks" role="group" aria-label="Stickers" hidden></div>
+
+    <div class="group" data-for="paper" hidden>
+      <div class="swatches-row" id="papers" role="group" aria-label="Paper colour"></div>
+      <div class="opts">
+        <button class="opt" type="button" id="texture" aria-pressed="true"><svg class="ico"><use href="#i-texture"/></svg>Crumpled</button>
+        <button class="opt" type="button" data-close><svg class="ico"><use href="#i-check"/></svg>Done</button>
+      </div>
+    </div>
+
+    <div class="opts" data-for="selected" hidden>
+      <button class="opt" type="button" id="fwd"><svg class="ico"><use href="#i-up"/></svg>Forward</button>
+      <button class="opt" type="button" id="back"><svg class="ico"><use href="#i-down"/></svg>Back</button>
+      <button class="opt" type="button" id="edit"><svg class="ico"><use href="#i-edit"/></svg>Edit</button>
+      <button class="opt" type="button" id="dup"><svg class="ico"><use href="#i-dup"/></svg>Copy</button>
+      <button class="opt" type="button" id="del"><svg class="ico"><use href="#i-bin"/></svg>Delete</button>
+      <button class="opt" type="button" id="deselect"><svg class="ico"><use href="#i-check"/></svg>Done</button>
+    </div>
+  </div>
+
+  <nav class="tabs" aria-label="Tools">
+    <button class="tab" type="button" data-tab="photo" aria-pressed="false"><svg class="ico"><use href="#i-photo"/></svg>Photo</button>
+    <button class="tab" type="button" data-tab="cut" aria-pressed="false"><svg class="ico"><use href="#i-cut"/></svg>Cut out</button>
+    <button class="tab" type="button" data-tab="draw" aria-pressed="false"><svg class="ico"><use href="#i-draw"/></svg>Draw</button>
+    <button class="tab" type="button" data-tab="text" aria-pressed="false"><svg class="ico"><use href="#i-text"/></svg>Text</button>
+    <button class="tab" type="button" data-tab="stickers" aria-pressed="false"><svg class="ico"><use href="#i-stk"/></svg>Stickers</button>
+    <button class="tab" type="button" data-tab="paper" aria-pressed="false"><svg class="ico"><use href="#i-paper"/></svg>Paper</button>
+  </nav>
+</div>
+
+<div class="editor" id="editor" hidden>
+  <div class="editor-top"><button class="done" type="button" id="done">Done</button></div>
+  <div class="typearea">
+    <div class="typebox" id="typebox">
+      <div class="layer" id="tLayer"></div>
+      <div class="face" id="tFace"></div>
+      <textarea id="tInput" rows="1" placeholder="Type a lyric…" aria-label="Your text" spellcheck="false" autocapitalize="sentences"></textarea>
+    </div>
+  </div>
+  <p class="hint">{ = devil, } = HW logo, &lt;3 = heart</p>
+  <div class="tcolors" id="tcolors" role="group" aria-label="Text colour"></div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const W = 1080;                                // scene width for every size; height depends on the size
+const INK = '#2b2727';
+const COLORS = ['#f49ac1', '#ffffff', '#1d1b1b', '#c9b3f2', '#ffd84d', '#7fd1b9', '#e5484d', '#4d6bff'];
+const CRAYONS = ['#f6c12e', '#f49ac1', '#ffffff', '#1d1b1b', '#5b8def'];
+const PAPERS = ['#ffffff', '#f3ead8', '#f6c9d6', '#d9cdf2', '#fbe28a', '#bfe3d3', '#bcd6f2', '#2b2727'];
+const SIZES = {
+  phone:  { h: 1920, out: 1080, outH: 1920, file: 'phone',  label: 'Phone (9:16)',                    frame: [.12, .12, .76, .50] },
+  letter: { h: 1398, out: 2550, outH: 3300, file: 'letter', label: 'Letter, 8.5 × 11 in at 300 dpi', frame: [.16, .09, .68, .60] },
+  a4:     { h: 1527, out: 2480, outH: 3508, file: 'a4',     label: 'A4 at 300 dpi',                 frame: [.16, .09, .68, .55] },
+};
+const STICKERS = [
+  { key: 'flower-purple' }, { key: 'flower-green' }, { key: 'star-pink' }, { key: 'star-blue' }, { key: 'star-yellow' },
+  { glyph: '{', label: 'Devil' }, { glyph: '♥', label: 'Heart' }, { glyph: '}', label: 'HW logo mark' },
+];
+const NAMES = { photo: 'Photo', text: 'Text', glyph: 'Sticker', sticker: 'Sticker', drawing: 'Drawing' };
+const canvas = $('poster'), ctx = canvas.getContext('2d');
+let size = SIZES.phone, H = size.h, view = 1;
+let paper = { color: PAPERS[0], texture: true };
+let photoMode = 'frame';                       // 'frame' or 'full' (the photo is the background)
+let photo = null;                              // { src, mask, versions:{}, cut:{}, zoom, ox, oy }
+let fx = { bw: false, duo: false, grain: false };   // effects stack: B&W, then duotone, then grain
+let duo = 'pink';
+const DUO = { pink: [244, 154, 193], yellow: [246, 193, 46], red: [229, 72, 77] };
+const fxKey = () => [fx.bw && 'bw', fx.duo && 'duo-' + duo, fx.grain && 'grain'].filter(Boolean).join('+') || 'none';
+// Every piece on the poster, bottom to top. The photo is one of them, so anything can go behind it.
+let layers = [];
+let active = null;                             // the selected piece
+let tab = null;                                // open tool: photo | cut | draw | text | stickers | paper
+let session = null;                            // the drawing being made while Draw is open
+const status = t => { $('status').textContent = t; };
+const rect = f => ({ x: f[0] * W, y: f[1] * H, w: f[2] * W, h: f[3] * H });
+const frameRect = () => rect(photoMode === 'full' ? [0, 0, 1, 1] : size.frame);
+const mode = () => tab === 'draw' ? 'draw' : tab === 'cut' && photo ? 'cut' : 'move';
+
+/* ---------- images ---------- */
+const img = {};
+function loadImg(key, src) { return new Promise(res => { const i = new Image(); i.onload = () => { img[key] = i; res(); }; i.onerror = res; i.src = src; }); }
+function makeCanvas(w, h) { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; }
+
+/* ---------- sizing ---------- */
+function fit() {                                // largest poster that fits between the top bar and the tools
+  const wrap = $('stagewrap').getBoundingClientRect();
+  const w = Math.max(120, Math.min(wrap.width - 72, 480, (wrap.height - 20) * W / H));
+  $('stagebox').style.width = w + 'px'; $('stagebox').style.height = w * H / W + 'px';
+  const r = canvas.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 3);
+  canvas.width = Math.round(r.width * dpr); canvas.height = Math.round(r.height * dpr);
+  view = canvas.width / W;
+  placeUpload(); draw();
+}
+function placeUpload() {                        // the "Add your photo" button sits over the photo's spot
+  const f = frameRect(), u = $('frameUpload');
+  u.hidden = !!photo;
+  Object.assign(u.style, { left: f.x / W * 100 + '%', top: f.y / H * 100 + '%', width: f.w / W * 100 + '%', height: f.h / H * 100 + '%' });
+}
+$('size').addEventListener('change', e => {
+  closeTab();
+  const next = SIZES[e.target.value], k = next.h / H;
+  layers.forEach(t => { if (t.kind !== 'photo') t.y *= k; });   // keep pieces in the same place on the poster
+  size = next; H = next.h;
+  fit(); status(next.label);
+});
+
+/* ---------- photo, effects, cut-out ---------- */
+function effectVersion() {
+  const key = fxKey();
+  if (key === 'none') return photo.src;
+  if (photo.versions[key]) return photo.versions[key];
+  const s = photo.src, c = makeCanvas(s.width, s.height), g = c.getContext('2d');
+  g.drawImage(s, 0, 0);
+  const d = g.getImageData(0, 0, c.width, c.height), p = d.data;
+  const dark = [43, 39, 39], light = DUO[duo];
+  for (let i = 0; i < p.length; i += 4) {
+    if (fx.bw) { const l = .3 * p[i] + .59 * p[i + 1] + .11 * p[i + 2], v = Math.max(0, Math.min(255, (l - 128) * 1.15 + 128)); p[i] = p[i + 1] = p[i + 2] = v; }
+    if (fx.duo) { const l = .3 * p[i] + .59 * p[i + 1] + .11 * p[i + 2], t = Math.max(0, Math.min(1, (l / 255 - .5) * 1.2 + .5)); for (let k = 0; k < 3; k++) p[i + k] = dark[k] + (light[k] - dark[k]) * t; }
+    if (fx.grain) { const n = (Math.random() - .5) * 70; for (let k = 0; k < 3; k++) p[i + k] = Math.max(0, Math.min(255, (p[i + k] - 128) * 1.08 + 128 + n)); }
+  }
+  g.putImageData(d, 0, 0);
+  return (photo.versions[key] = c);
+}
+function photoImage() {                         // the photo with its effects, cut out if the fan traced around someone
+  const base = effectVersion(), key = fxKey();
+  if (!photo.mask) return base;
+  if (photo.cut[key]) return photo.cut[key];
+  const c = makeCanvas(base.width, base.height), g = c.getContext('2d');
+  g.drawImage(photo.mask, 0, 0); g.globalCompositeOperation = 'source-in'; g.drawImage(base, 0, 0);
+  return (photo.cut[key] = c);
+}
+function photoRect() {                          // the photo always covers its frame (or the whole poster)
+  const f = frameRect(), s = photo.src, k = Math.max(f.w / s.width, f.h / s.height) * photo.zoom;
+  const w = s.width * k, h = s.height * k, mx = (w - f.w) / 2, my = (h - f.h) / 2;
+  photo.ox = Math.max(-mx, Math.min(mx, photo.ox)); photo.oy = Math.max(-my, Math.min(my, photo.oy));
+  return { x: f.x + (f.w - w) / 2 + photo.ox, y: f.y + (f.h - h) / 2 + photo.oy, w, h };
+}
+function loadPhoto(file) {
+  const url = URL.createObjectURL(file), im = new Image();
+  im.onload = () => {
+    const max = 3000, s = Math.min(1, max / Math.max(im.width, im.height));   // enough for a 300 dpi print
+    const c = makeCanvas(im.width * s, im.height * s); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+    photo = { src: c, mask: null, versions: {}, cut: {}, zoom: 1, ox: 0, oy: 0 };
+    if (!layers.some(t => t.kind === 'photo')) layers.unshift({ kind: 'photo' });   // new photos go at the bottom, above the paper
+    URL.revokeObjectURL(url);
+    placeUpload(); refresh(); draw();
+    status('Drag to move your photo, pinch or scroll to zoom.');
+  };
+  im.onerror = () => status('That file couldn’t be opened. Try a JPG or PNG.');
+  im.src = url;
+}
+document.querySelectorAll('[data-upload]').forEach(inp => inp.addEventListener('change', e => { if (e.target.files[0]) loadPhoto(e.target.files[0]); e.target.value = ''; }));
+document.querySelectorAll('[data-fx]').forEach(b => b.onclick = () => {
+  if (!photo) { status('Add a photo first.'); return; }
+  fx[b.dataset.fx] = !fx[b.dataset.fx];
+  applyFx();
+});
+document.querySelectorAll('[data-duo]').forEach(b => b.onclick = () => { duo = b.dataset.duo; applyFx(); });
+function applyFx() {
+  refresh();
+  if (!photo) return;
+  status('Applying…');
+  setTimeout(() => { effectVersion(); status(''); draw(); }, 20);
+}
+document.querySelectorAll('[data-photo-mode]').forEach(b => b.onclick = () => {
+  photoMode = b.dataset.photoMode;
+  if (photo) { photo.zoom = 1; photo.ox = photo.oy = 0; }
+  refresh(); placeUpload(); draw();
+  status(photoMode === 'full' ? 'Your photo is now the background.' : 'Your photo is in a frame.');
+});
+$('uncut').onclick = () => {
+  if (!photo || !photo.mask) return;
+  photo.mask = null; photo.cut = {}; refresh(); status('Background is back.'); draw();
+};
+function applyCut(path) {                       // scene-space lasso -> mask in the photo's own pixels
+  const r = photoRect(), s = photo.src, m = makeCanvas(s.width, s.height), g = m.getContext('2d');
+  g.beginPath();
+  path.forEach((p, i) => { const x = (p.x - r.x) / r.w * s.width, y = (p.y - r.y) / r.h * s.height; i ? g.lineTo(x, y) : g.moveTo(x, y); });
+  g.closePath(); g.fillStyle = '#000'; g.fill();
+  photo.mask = m; photo.cut = {};
+  refresh();
+  status('Cut out! Trace again to redo it, or tap Undo cut.');
+}
+
+/* ---------- crayon drawings ---------- */
+let crayon = CRAYONS[0], thick = false, current = null;
+const grain = (() => {                          // waxy paper-tooth: blotchy noise that knocks holes in each stroke
+  const n = 96, c = makeCanvas(n, n), g = c.getContext('2d'), d = g.createImageData(n, n);
+  const coarse = Array.from({ length: 13 * 13 }, () => Math.random());
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const cv = coarse[Math.floor(y / 8) * 13 + Math.floor(x / 8)], v = Math.random() * .7 + cv * .3;
+    d.data[(y * n + x) * 4 + 3] = v > .72 ? 255 : v > .6 ? 110 : 0;
+  }
+  g.putImageData(d, 0, 0); return c;
+})();
+function strokePath(g, s, jx, jy) {
+  g.beginPath();
+  s.pts.forEach((p, i) => i ? g.lineTo(p.x + jx, p.y + jy) : g.moveTo(p.x + jx, p.y + jy));
+  if (s.pts.length === 1) g.lineTo(s.pts[0].x + jx + .1, s.pts[0].y + jy);
+  g.stroke();
+}
+function bounds(strokes) {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  strokes.forEach(s => s.pts.forEach(p => { x0 = Math.min(x0, p.x - s.width); y0 = Math.min(y0, p.y - s.width); x1 = Math.max(x1, p.x + s.width); y1 = Math.max(y1, p.y + s.width); }));
+  return { x0, y0, x1, y1 };
+}
+function crayonStroke(g, s, px) {               // one stroke, rendered at px pixels per unit, grainy like wax
+  const b = bounds([s]);
+  const c = makeCanvas((b.x1 - b.x0) * px, (b.y1 - b.y0) * px), t = c.getContext('2d');
+  t.setTransform(px, 0, 0, px, -b.x0 * px, -b.y0 * px);
+  t.lineCap = 'round'; t.lineJoin = 'round'; t.strokeStyle = s.color;
+  t.globalAlpha = .92; t.lineWidth = s.width; strokePath(t, s, 0, 0);
+  const j = s.width * .2, r = s.seed;
+  t.globalAlpha = .6; t.lineWidth = s.width * .7;
+  strokePath(t, s, j * Math.cos(r), j * Math.sin(r)); strokePath(t, s, -j * Math.sin(r * 2), j * Math.cos(r * 2));
+  t.setTransform(1, 0, 0, 1, 0, 0); t.globalAlpha = 1; t.globalCompositeOperation = 'destination-out';
+  const pat = t.createPattern(grain, 'repeat'), k = 1.7 * px;
+  if (pat.setTransform) pat.setTransform(new DOMMatrix([k, 0, 0, k, (r * 37) % 50, (r * 53) % 50]));
+  t.fillStyle = pat; t.fillRect(0, 0, c.width, c.height);
+  g.drawImage(c, b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0);
+}
+function drawDrawing(g, d, px) {                // a drawing is one piece: all its strokes move together
+  if (!d.strokes.length) return;
+  const k = px * d.scale;
+  if (g === ctx) {                              // on screen: keep the rendered strokes until something changes
+    const key = k.toFixed(3) + '|' + d.strokes.length;
+    if (d.cacheKey !== key) {
+      const b = bounds(d.strokes), c = makeCanvas((b.x1 - b.x0) * k, (b.y1 - b.y0) * k), t = c.getContext('2d');
+      t.setTransform(k, 0, 0, k, -b.x0 * k, -b.y0 * k);
+      d.strokes.forEach(s => crayonStroke(t, s, k));
+      d.cache = { c, b }; d.cacheKey = key;
+    }
+    const { c, b } = d.cache;
+    g.drawImage(c, b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0);
+  } else d.strokes.forEach(s => crayonStroke(g, s, k));
+}
+function startSession() {                       // Draw opens: a fresh drawing on top of everything
+  session = { kind: 'drawing', strokes: [], x: 0, y: 0, scale: 1, rot: 0 };
+  layers.push(session);
+}
+function endSession() {                         // Draw closes: centre the drawing on its strokes so it moves like a sticker
+  const d = session; session = null;
+  if (!d) return;
+  if (!d.strokes.length) { layers = layers.filter(t => t !== d); return; }
+  const b = bounds(d.strokes), cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
+  d.strokes.forEach(s => s.pts.forEach(p => { p.x -= cx; p.y -= cy; }));
+  d.x = cx; d.y = cy; d.cacheKey = null;
+  active = d;
+  status('Your drawing is one piece now. Drag it, or tap Back to put it behind the photo.');
+}
+CRAYONS.forEach(c => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'swatch'; b.style.background = c;
+  b.setAttribute('aria-label', 'Crayon ' + c); b.onclick = () => { crayon = c; refresh(); };
+  $('crayons').appendChild(b);
+});
+$('thick').onclick = () => { thick = !thick; refresh(); };
+$('undoDraw').onclick = () => { if (session && session.strokes.length) { session.strokes.pop(); draw(); } };
+
+/* ---------- paper ---------- */
+PAPERS.forEach(c => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'swatch'; b.style.background = c;
+  b.setAttribute('aria-label', 'Paper ' + c); b.onclick = () => { paper.color = c; refresh(); draw(); };
+  $('papers').appendChild(b);
+});
+$('texture').onclick = () => { paper.texture = !paper.texture; refresh(); draw(); };
+
+/* ---------- text, symbols, stickers ---------- */
+const BASE = 130;                               // text size in scene px at scale 1
+const STK = 300;                                // sticker size (longest side) in scene px at scale 1
+function textMetrics(t) {
+  ctx.save(); ctx.font = `${BASE}px "Ms.Williams"`;
+  const lines = t.text.split('\n'), lh = BASE * 1.08;
+  const w = Math.max(...lines.map(l => ctx.measureText(l).width), BASE * .5);
+  ctx.restore();
+  return { lines, lh, w: w + BASE * .3, h: lines.length * lh + BASE * .3 };
+}
+function box(t) {                               // unscaled width / height of a piece, centred on (x, y)
+  if (t.kind === 'sticker') { const i = img[t.key], k = i ? STK / Math.max(i.width, i.height) : 1; return i ? { w: i.width * k, h: i.height * k } : { w: STK, h: STK }; }
+  if (t.kind === 'drawing') { const b = bounds(t.strokes); return { w: b.x1 - b.x0, h: b.y1 - b.y0 }; }
+  return textMetrics(t);
+}
+function drawItem(g, t, px) {
+  if (t.kind === 'photo') {
+    if (!photo) return;
+    const f = frameRect(), r = photoRect();
+    g.save(); g.beginPath(); g.rect(f.x, f.y, f.w, f.h); g.clip();
+    g.drawImage(photoImage(), r.x, r.y, r.w, r.h);
+    g.restore(); return;
+  }
+  g.save(); g.translate(t.x, t.y); g.rotate(t.rot); g.scale(t.scale, t.scale);
+  if (t.kind === 'drawing') {
+    drawDrawing(g, t, px);
+    if (t === session && current) crayonStroke(g, current, px);
+  } else if (t.kind === 'sticker') {
+    const i = img[t.key], b = box(t);
+    if (i) g.drawImage(i, -b.w / 2, -b.h / 2, b.w, b.h);
+  } else {
+    const m = textMetrics(t);
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    [['"Ms.Williams Layer"', INK], ['"Ms.Williams"', t.color]].forEach(([font, col]) => {
+      g.font = `${BASE}px ${font}`; g.fillStyle = col;
+      m.lines.forEach((l, i) => g.fillText(l, 0, (i - (m.lines.length - 1) / 2) * m.lh));
+    });
+  }
+  g.restore();
+}
+function inFrame(x, y) { const f = frameRect(); return x >= f.x && x <= f.x + f.w && y >= f.y && y <= f.y + f.h; }
+function hitPiece(x, y) {                       // topmost piece under the finger
+  for (let i = layers.length - 1; i >= 0; i--) {
+    const t = layers[i];
+    if (t.kind === 'photo') { if (photo && inFrame(x, y)) return t; continue; }
+    if (t === session) continue;
+    const b = box(t), c = Math.cos(-t.rot), s = Math.sin(-t.rot);
+    const lx = ((x - t.x) * c - (y - t.y) * s) / t.scale, ly = ((x - t.x) * s + (y - t.y) * c) / t.scale;
+    if (Math.abs(lx) <= b.w / 2 + 20 && Math.abs(ly) <= b.h / 2 + 20) return t;
+  }
+  return null;
+}
+
+/* ---------- selection handles: × delete (top-left), resize + turn (bottom-right) ---------- */
+const handleR = () => 15 * W / canvas.getBoundingClientRect().width;     // 15 CSS px in scene units
+function handles(t) {
+  const b = box(t), pad = 14, hw = (b.w / 2 + pad) * t.scale, hh = (b.h / 2 + pad) * t.scale, c = Math.cos(t.rot), s = Math.sin(t.rot);
+  const at = (lx, ly) => ({ x: t.x + lx * c - ly * s, y: t.y + lx * s + ly * c });
+  return { corners: [at(-hw, -hh), at(hw, -hh), at(hw, hh), at(-hw, hh)], del: at(-hw, -hh), turn: at(hw, hh) };
+}
+function dashed(g, pts, R) {
+  g.lineWidth = R * .16; g.setLineDash([R * .5, R * .35]);
+  [['#fff', 0], ['#1d1b1b', R * .42]].forEach(([c, o]) => { g.strokeStyle = c; g.lineDashOffset = o; g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)); g.closePath(); g.stroke(); });
+  g.setLineDash([]);
+}
+function drawHandles(g, t) {
+  const R = handleR();
+  g.save();
+  if (t.kind === 'photo') {                     // the photo stays put; just outline it
+    const f = frameRect(), i = R * .2;
+    dashed(g, [{ x: f.x + i, y: f.y + i }, { x: f.x + f.w - i, y: f.y + i }, { x: f.x + f.w - i, y: f.y + f.h - i }, { x: f.x + i, y: f.y + f.h - i }], R);
+    g.restore(); return;
+  }
+  const h = handles(t);
+  dashed(g, h.corners, R);
+  [[h.del, '#1d1b1b'], [h.turn, '#f49ac1']].forEach(([p, c]) => { g.beginPath(); g.arc(p.x, p.y, R, 0, 7); g.fillStyle = c; g.fill(); g.lineWidth = R * .18; g.strokeStyle = '#fff'; g.stroke(); });
+  g.strokeStyle = '#fff'; g.lineWidth = R * .2; g.lineCap = 'round';
+  const d = R * .38, x = h.del.x, y = h.del.y;
+  g.beginPath(); g.moveTo(x - d, y - d); g.lineTo(x + d, y + d); g.moveTo(x + d, y - d); g.lineTo(x - d, y + d); g.stroke();
+  g.strokeStyle = '#1d1b1b';
+  g.beginPath(); g.arc(h.turn.x, h.turn.y, R * .45, -2.6, 1.9); g.stroke();
+  const ax = h.turn.x + R * .45 * Math.cos(1.9), ay = h.turn.y + R * .45 * Math.sin(1.9);
+  g.beginPath(); g.moveTo(ax - R * .3, ay - R * .05); g.lineTo(ax, ay); g.lineTo(ax + R * .05, ay - R * .32); g.stroke();
+  g.restore();
+}
+function hitHandle(p) {
+  if (mode() !== 'move' || !active || active.kind === 'photo' || !layers.includes(active)) return null;
+  const h = handles(active), R = handleR() * 1.5;
+  if (Math.hypot(p.x - h.del.x, p.y - h.del.y) < R) return 'del';
+  if (Math.hypot(p.x - h.turn.x, p.y - h.turn.y) < R) return 'turn';
+  return null;
+}
+
+/* ---------- drawing the poster ---------- */
+function cover(g, i, x, y, w, h) {
+  if (!i) return;
+  const k = Math.max(w / i.width, h / i.height), iw = i.width * k, ih = i.height * k;
+  g.drawImage(i, x + (w - iw) / 2, y + (h - ih) / 2, iw, ih);
+}
+let lasso = null;                               // the cut-out trace while the finger is down
+function render(g, px) {
+  g.fillStyle = paper.color; g.fillRect(0, 0, W, H);
+  if (paper.texture && img.paper) { g.save(); g.globalCompositeOperation = 'multiply'; cover(g, img.paper, 0, 0, W, H); g.restore(); }
+  if (!photo && photoMode === 'frame') { const f = frameRect(); g.fillStyle = 'rgba(29, 27, 27, .82)'; g.fillRect(f.x, f.y, f.w, f.h); }
+  layers.forEach(t => drawItem(g, t, px));
+  if (g !== ctx) return;                        // the rest is on-screen help only, never saved
+  if (mode() === 'move' && active && layers.includes(active)) drawHandles(g, active);
+  if (lasso && lasso.length > 1) {
+    g.save(); g.lineWidth = 5; g.setLineDash([16, 12]); g.lineJoin = 'round';
+    [['#fff', 0], ['#1d1b1b', 14]].forEach(([c, o]) => { g.strokeStyle = c; g.lineDashOffset = o; g.beginPath(); lasso.forEach((p, i) => i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)); g.stroke(); });
+    g.restore();
+  }
+}
+function draw() { ctx.setTransform(view, 0, 0, view, 0, 0); render(ctx, view); }
+
+/* ---------- options bar ---------- */
+function refresh() {                            // show the options for the open tool, or for the selected piece
+  if (active && !layers.includes(active)) active = null;
+  const which = tab || (active ? 'selected' : 'none');
+  document.querySelectorAll('[data-for]').forEach(el => { el.hidden = el.dataset.for !== which; });
+  document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tab === tab)));
+  const titles = {
+    none: photo ? 'Tap a piece to move it, or pick a tool' : 'Start with your photo, or pick a tool',
+    photo: 'Photo', cut: photo ? 'Trace around the person with your finger' : 'Add a photo first',
+    draw: 'Scribble on your poster', text: 'Tap text on the poster to edit it', stickers: 'Tap a sticker to add it', paper: 'Paper colour',
+    selected: active ? NAMES[active.kind] + ' selected' + (active.kind === 'photo' ? ' · drag to move it inside its frame' : ' · pink corner: resize and turn') : '',
+  };
+  $('barTitle').textContent = titles[which];
+  document.querySelectorAll('[data-fx]').forEach(x => x.setAttribute('aria-pressed', String(fx[x.dataset.fx])));
+  $('duoColors').hidden = !fx.duo;
+  document.querySelectorAll('[data-duo]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.duo === duo)));
+  document.querySelectorAll('[data-photo-mode]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.photoMode === photoMode)));
+  $('uncut').disabled = !(photo && photo.mask);
+  $('thick').setAttribute('aria-pressed', String(thick));
+  $('texture').setAttribute('aria-pressed', String(paper.texture));
+  $('crayons').querySelectorAll('.swatch').forEach((b, i) => b.setAttribute('aria-pressed', String(CRAYONS[i] === crayon)));
+  $('papers').querySelectorAll('.swatch').forEach((b, i) => b.setAttribute('aria-pressed', String(PAPERS[i] === paper.color)));
+  if (active) {
+    const i = layers.indexOf(active);
+    $('fwd').disabled = i === layers.length - 1; $('back').disabled = i === 0;
+    $('edit').hidden = active.kind !== 'text'; $('dup').hidden = active.kind === 'photo';
+  }
+  $('stagebox').classList.toggle('drawing', mode() === 'draw');
+  $('stagebox').classList.toggle('cutting', mode() === 'cut');
+}
+function openTab(id) {
+  if (tab === 'draw' && id !== 'draw') endSession();
+  tab = id;
+  if (id) active = null;
+  if (id === 'draw') startSession();
+  if (id === 'cut' && !photo) status('Add a photo first, then trace around the person.');
+  refresh(); draw();
+  if (id === 'text') openEditor(null);
+}
+function closeTab() { openTab(null); }
+document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => openTab(tab === b.dataset.tab ? null : b.dataset.tab));
+document.querySelectorAll('[data-close]').forEach(b => b.onclick = closeTab);
+$('newText').onclick = () => openEditor(null);
+$('deselect').onclick = () => { active = null; refresh(); draw(); };
+$('fwd').onclick = () => moveLayer(1);
+$('back').onclick = () => moveLayer(-1);
+function moveLayer(dir) {
+  const i = layers.indexOf(active), j = i + dir;
+  if (i < 0 || j < 0 || j >= layers.length) return;
+  const passed = layers[j];
+  [layers[i], layers[j]] = [layers[j], layers[i]];
+  status(passed.kind === 'photo' ? (dir < 0 ? 'Now behind the photo.' : 'Now in front of the photo.') : (dir < 0 ? 'Moved back.' : 'Moved forward.'));
+  refresh(); draw();
+}
+$('dup').onclick = () => {
+  if (!active || active.kind === 'photo') return;
+  const c = { ...active, x: active.x + 40, y: active.y + 40, cacheKey: null };
+  if (c.strokes) c.strokes = active.strokes.map(s => ({ ...s, pts: s.pts.map(p => ({ ...p })) }));
+  layers.splice(layers.indexOf(active) + 1, 0, c); active = c;
+  refresh(); draw();
+};
+$('del').onclick = () => removePiece(active);
+$('edit').onclick = () => { if (active && active.kind === 'text') openEditor(active); };
+function removePiece(t) {
+  if (!t) return;
+  layers = layers.filter(x => x !== t);
+  if (t.kind === 'photo') { photo = null; fx = { bw: false, duo: false, grain: false }; placeUpload(); }
+  active = null; status('Deleted.'); refresh(); draw();
+}
+
+/* ---------- stickers ---------- */
+let placed = 0;
+STICKERS.forEach(s => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'stk';
+  if (s.key) { b.innerHTML = `<img src="assets/st-${s.key}.webp" alt="">`; b.setAttribute('aria-label', 'Add ' + s.key.replace('-', ' ') + ' sticker'); }
+  else { const sp = document.createElement('span'); sp.textContent = s.glyph; b.appendChild(sp); b.setAttribute('aria-label', 'Add ' + s.label); }
+  b.onclick = async () => {
+    const spot = placed++ % 4, f = rect(size.frame);
+    const x = [f.x + f.w * .9, f.x + f.w * .1, f.x + f.w * .85, f.x + f.w * .2][spot], y = [f.y + f.h * .1, f.y + f.h * .35, f.y + f.h * .75, f.y + f.h * .95][spot];
+    let t;
+    if (s.key) { if (!img[s.key]) await loadImg(s.key, `assets/st-${s.key}.webp`); t = { kind: 'sticker', key: s.key, x, y, scale: .8, rot: (Math.random() - .5) * .5 }; }
+    else t = { kind: 'glyph', text: s.glyph, color: COLORS[0], x, y, scale: 1.4, rot: (Math.random() - .5) * .4 };
+    layers.push(t); draw();
+    status('Added. Tap it on the poster to move it, or add more.');
+  };
+  $('stks').appendChild(b);
+});
+
+/* ---------- touch and mouse ---------- */
+const pts = new Map();
+let gesture = null;
+const scene = e => { const r = canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+function startGesture() {
+  const list = [...pts.values()];
+  if (list.length === 1) {
+    const p = list[0], t = hitPiece(p.x, p.y), was = !!t && t === active;
+    if (tab) closeTab();                        // touching the poster closes the open tool
+    active = t;
+    gesture = { kind: t ? (t.kind === 'photo' ? 'photo' : 'item') : 'none', t, sx: p.x, sy: p.y,
+      x0: t ? (t.kind === 'photo' ? photo.ox : t.x) : 0, y0: t ? (t.kind === 'photo' ? photo.oy : t.y) : 0, time: Date.now(), moved: false, was };
+    refresh();
+  } else if (list.length >= 2) {
+    const [a, b] = list, cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2, d = Math.hypot(b.x - a.x, b.y - a.y), ang = Math.atan2(b.y - a.y, b.x - a.x);
+    const t = active && active.kind !== 'photo' && layers.includes(active) ? active : null;
+    gesture = t ? { kind: 'pinchItem', t, d, ang, s0: t.scale, r0: t.rot, cx, cy, x0: t.x, y0: t.y } : { kind: 'pinchPhoto', d, z0: photo ? photo.zoom : 1 };
+  }
+}
+canvas.addEventListener('pointerdown', e => {
+  try { canvas.setPointerCapture(e.pointerId); } catch { /* pointer already gone */ }
+  const p = scene(e);
+  if (mode() === 'draw' && !pts.size) { current = { color: crayon, width: thick ? 42 : 24, seed: Math.random() * 6.28, pts: [p] }; pts.set(e.pointerId, p); draw(); return; }
+  if (mode() === 'cut' && !pts.size) { lasso = [p]; pts.set(e.pointerId, p); draw(); return; }
+  if (current || lasso) return;                 // a second finger while drawing or tracing is ignored
+  if (!pts.size) {
+    const h = hitHandle(p);
+    if (h === 'del') { removePiece(active); return; }
+    if (h === 'turn') {
+      const t = active; pts.set(e.pointerId, p);
+      gesture = { kind: 'handle', t, d0: Math.hypot(p.x - t.x, p.y - t.y), a0: Math.atan2(p.y - t.y, p.x - t.x), s0: t.scale, r0: t.rot };
+      return;
+    }
+  }
+  pts.set(e.pointerId, p); startGesture(); draw();
+});
+canvas.addEventListener('pointermove', e => {
+  if (!pts.has(e.pointerId)) return;
+  const p = scene(e);
+  pts.set(e.pointerId, p);
+  if (current) { const q = current.pts[current.pts.length - 1]; if (Math.hypot(p.x - q.x, p.y - q.y) > 3) { current.pts.push(p); draw(); } return; }
+  if (lasso) { const q = lasso[lasso.length - 1]; if (Math.hypot(p.x - q.x, p.y - q.y) > 4) { lasso.push(p); draw(); } return; }
+  if (!gesture) return;
+  const list = [...pts.values()];
+  if (gesture.kind === 'handle') {               // drag the corner: resize and turn around the centre
+    const t = gesture.t, d = Math.hypot(p.x - t.x, p.y - t.y);
+    t.scale = Math.max(.15, Math.min(6, gesture.s0 * d / Math.max(1, gesture.d0)));
+    t.rot = gesture.r0 + Math.atan2(p.y - t.y, p.x - t.x) - gesture.a0;
+    draw(); return;
+  }
+  if (gesture.kind === 'item' || gesture.kind === 'photo') {
+    const q = list[0], dx = q.x - gesture.sx, dy = q.y - gesture.sy;
+    if (Math.hypot(dx, dy) > 12) gesture.moved = true;
+    if (gesture.kind === 'item') { gesture.t.x = gesture.x0 + dx; gesture.t.y = gesture.y0 + dy; }
+    else { photo.ox = gesture.x0 + dx; photo.oy = gesture.y0 + dy; }
+  } else if (list.length >= 2) {
+    const [a, b] = list, d = Math.hypot(b.x - a.x, b.y - a.y), ang = Math.atan2(b.y - a.y, b.x - a.x);
+    if (gesture.kind === 'pinchItem') {
+      const t = gesture.t; t.scale = Math.max(.15, Math.min(6, gesture.s0 * d / gesture.d)); t.rot = gesture.r0 + ang - gesture.ang;
+      t.x = gesture.x0 + (a.x + b.x) / 2 - gesture.cx; t.y = gesture.y0 + (a.y + b.y) / 2 - gesture.cy;
+    } else if (gesture.kind === 'pinchPhoto' && photo) photo.zoom = Math.max(1, Math.min(5, gesture.z0 * d / gesture.d));
+  }
+  draw();
+});
+function endPointer(e) {
+  if (!pts.has(e.pointerId)) return;
+  pts.delete(e.pointerId);
+  if (current) { session.strokes.push(current); current = null; draw(); return; }
+  if (lasso) {
+    const path = lasso; lasso = null;
+    if (path.length > 12 && e.type === 'pointerup') applyCut(path); else status('Trace all the way around the person, then lift your finger.');
+    draw(); return;
+  }
+  const g = gesture;
+  if (g && g.kind === 'item' && pts.size === 0 && !g.moved && Date.now() - g.time < 400 && g.t.kind === 'text' && g.was) openEditor(g.t);
+  gesture = null;
+  if (pts.size) startGesture();                 // one finger lifted from a pinch: keep dragging with the other
+  draw();
+}
+canvas.addEventListener('pointerup', endPointer);
+canvas.addEventListener('pointercancel', endPointer);
+canvas.addEventListener('wheel', e => {        // computer: scroll to resize a piece or zoom the photo
+  e.preventDefault();
+  const p = scene(e), t = hitPiece(p.x, p.y), k = Math.exp(-e.deltaY * .0015);
+  if (t && t.kind !== 'photo') t.scale = Math.max(.15, Math.min(6, t.scale * k));
+  else if (t && photo) photo.zoom = Math.max(1, Math.min(5, photo.zoom * k));
+  draw();
+}, { passive: false });
+
+/* ---------- Instagram-style text editor ---------- */
+let editing = null, color = COLORS[0];
+COLORS.forEach(c => {
+  const b = document.createElement('button'); b.type = 'button'; b.style.background = c; b.setAttribute('aria-label', 'Colour ' + c);
+  b.onclick = () => { color = c; syncEditor(); $('tInput').focus(); };
+  $('tcolors').appendChild(b);
+});
+function syncEditor() {
+  const v = $('tInput').value;
+  $('tLayer').textContent = v + '​'; $('tFace').textContent = v + '​';
+  const len = Math.max(...v.split('\n').map(l => l.length), 1);
+  $('typebox').style.setProperty('--fs', Math.max(30, Math.min(64, 520 / len)) + 'px');
+  $('typebox').style.setProperty('--tc', color);
+  $('tcolors').querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-pressed', String(COLORS[i] === color)));
+}
+function openEditor(t) {
+  editing = t || null; color = t ? t.color : color;
+  $('tInput').value = t ? t.text : '';
+  $('editor').hidden = false; syncEditor();
+  $('tInput').focus();                          // in the same tap, or iPhone won't show the keyboard
+}
+function closeEditor() {
+  const v = $('tInput').value.replace(/\s+$/, '');
+  if (editing) {
+    if (v) { editing.text = v; editing.color = color; active = editing; } else removePiece(editing);
+  } else if (v) {
+    const f = frameRect(), n = layers.filter(x => x.kind === 'text').length;
+    const y = photoMode === 'full' ? H * (.78 - (n % 3) * .07) : Math.min(H * .9, f.y + f.h + H * .09 + (n % 3) * H * .07);
+    const t = { kind: 'text', text: v, color, x: W / 2, y, scale: 1, rot: -.05 };
+    const m = textMetrics(t); t.scale = Math.min(1.6, (W * .84) / m.w);
+    layers.push(t); active = t;
+  }
+  editing = null; $('editor').hidden = true; $('tInput').blur();
+  tab = null; refresh(); draw();
+}
+$('tInput').addEventListener('input', syncEditor);
+$('done').onclick = closeEditor;
+$('editor').addEventListener('pointerdown', e => { if (e.target === $('editor') || e.target.classList.contains('typearea')) closeEditor(); });
+if (window.visualViewport) {                    // keep the colour dots above the phone keyboard
+  const kb = () => document.documentElement.style.setProperty('--kb', Math.max(16, window.innerHeight - visualViewport.height - visualViewport.offsetTop + 12) + 'px');
+  visualViewport.addEventListener('resize', kb); visualViewport.addEventListener('scroll', kb);
+}
+
+/* ---------- saving ---------- */
+async function saveBlob(name, blob, type) {
+  const file = new File([blob], name, { type });
+  if (matchMedia('(pointer: coarse)').matches && navigator.canShare && navigator.canShare({ files: [file] })) {   // phones: share sheet -> Save Image
+    try { await navigator.share({ files: [file] }); status('Saved. Tag it #MsWilliamsFont ♥'); return; }
+    catch (err) { if (err && err.name === 'AbortError') { status(''); return; } }
+  }
+  let dl = null;
+  try { dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch { dl = null; }
+  if (dl) {
+    try { await dl.save({ filename: name, data: blob }); status('Saved ' + name + '.'); }
+    catch (err) { status(err && err.code === 'declined' ? 'Save cancelled.' : 'Saving isn’t available here. Open the page in your browser.'); }
+    return;
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  status('Downloading ' + name + '…');
+}
+$('save').onclick = () => {
+  if (tab === 'draw') closeTab();
+  if (!layers.length) { status('Add a photo, some text or a sticker first.'); return; }
+  const out = makeCanvas(size.out, size.outH), g = out.getContext('2d');   // exact print pixels: 8.5x11 or A4 at 300 dpi
+  const px = size.out / W;
+  g.scale(px, size.outH / H); render(g, px);
+  status('Making your poster…');
+  out.toBlob(b => b ? saveBlob(`ms-williams-poster-${size.file}.png`, b, 'image/png') : status('Couldn’t make the image. Try again.'), 'image/png');
+};
+
+/* ---------- start ---------- */
+new ResizeObserver(fit).observe($('stagewrap'));   // window size, the options bar changing height, phone keyboard
+refresh(); fit();
+Promise.all([
+  loadImg('paper', 'assets/poster-paper.webp'),
+  ...['130px "Ms.Williams"', '130px "Ms.Williams Layer"'].map(f => document.fonts.load(f).catch(() => null)),
+]).then(draw);
+})();
+</script>
+
+</body>
+</html>
