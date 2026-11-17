@@ -8,7 +8,7 @@
 <body>
 <title>Make a Hayley Williams Poster</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="Turn your concert photo into a collage poster with the Ms.Williams font. Phone or printable sizes, made on your phone.">
+<meta name="description" content="Turn your concert photo into a collage poster with the Ms.Williams or Riot fonts. Phone or printable sizes, made on your phone.">
 <style>
 /* Toolbox layout (phone first) on a green self-healing cutting mat: size picker, title and Save on
    top; the poster in the middle; one dark options bar that changes with the
@@ -33,6 +33,9 @@
 @font-face { font-family: 'Ms.Williams Shadow'; src: url(fonts/MsWilliamsShadow-Regular.woff2) format('woff2'); font-display: block; }
 @font-face { font-family: 'Ms.Williams'; src: url(fonts/MsWilliams-Regular.woff2) format('woff2'); font-display: block; }
 @font-face { font-family: 'Ms.Williams Layer'; src: url(fonts/MsWilliams-Layer.woff2) format('woff2'); font-display: block; }
+@font-face { font-family: 'Riot Marker'; src: url(fonts/Riot-Marker.woff2) format('woff2'); font-display: block; }
+@font-face { font-family: 'Riot Scrawl'; src: url(fonts/Riot-Scrawl.woff2) format('woff2'); font-display: block; }
+@font-face { font-family: 'Riot Scribble'; src: url(fonts/Riot-Scribble.woff2) format('woff2'); font-display: block; }
 @font-face { font-family: 'Geist Mono'; src: url(fonts/GeistMono-Bold.woff2) format('woff2'); font-weight: 700; font-display: swap; }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -129,6 +132,11 @@ h1 { margin: 0; font: 400 clamp(20px, 6vw, 30px)/1 var(--display); transform: ro
 .typebox textarea { background: transparent; color: transparent; caret-color: #fff; resize: none; outline: none; overflow: hidden; height: 100%; }
 .typebox textarea::placeholder { color: rgba(255,255,255,.55); }
 .hint { color: #fff; opacity: .75; text-align: center; font-size: 11px; margin: 0; }
+.tfonts { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; padding-top: 12px; }
+.tfonts button { font: 400 17px/1 var(--f); color: #fff; background: rgba(255,255,255,.12); border: 2px solid rgba(255,255,255,.5); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
+.tfonts button[aria-pressed="true"] { background: #fff; color: #1d1b1b; border-color: #fff; }
+.typebox.riot .layer { display: none; }
+.typebox.riot > * { font-family: var(--tf); line-height: 1.15; }
 .tcolors { display: flex; justify-content: center; gap: 12px; padding-block: 12px 4px; }
 .tcolors button { width: 30px; height: 30px; border-radius: 50%; border: 3px solid #fff; padding: 0; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
 .tcolors button[aria-pressed="true"] { transform: scale(1.25); }
@@ -258,7 +266,13 @@ h1 { margin: 0; font: 400 clamp(20px, 6vw, 30px)/1 var(--display); transform: ro
       <textarea id="tInput" rows="1" placeholder="Type a lyric…" aria-label="Your text" spellcheck="false" autocapitalize="sentences"></textarea>
     </div>
   </div>
-  <p class="hint">{ = devil, } = HW logo, &lt;3 = heart</p>
+  <div class="tfonts" id="tfonts" role="group" aria-label="Font">
+    <button type="button" data-font="msw" style="--f: 'Ms.Williams Shadow'">Ms.Williams</button>
+    <button type="button" data-font="Marker" style="--f: 'Riot Marker'">Riot Marker</button>
+    <button type="button" data-font="Scrawl" style="--f: 'Riot Scrawl'">Riot Scrawl</button>
+    <button type="button" data-font="Scribble" style="--f: 'Riot Scribble'">Riot Scribble</button>
+  </div>
+  <p class="hint" id="thint">{ = devil, } = HW logo, &lt;3 = heart</p>
   <div class="tcolors" id="tcolors" role="group" aria-label="Text colour"></div>
 </div>
 
@@ -491,9 +505,12 @@ $('texture').onclick = () => { paper.texture = !paper.texture; refresh(); draw()
 /* ---------- text, symbols, stickers ---------- */
 const BASE = 130;                               // text size in scene px at scale 1
 const STK = 300;                                // sticker size (longest side) in scene px at scale 1
+// a text piece is in Ms.Williams (pink face + ink layer) or one of the Riot styles (one colour)
+const isRiot = t => t.font && t.font !== 'msw';
+const riotFont = t => `"Riot ${t.font}"`;
 function textMetrics(t) {
-  ctx.save(); ctx.font = `${BASE}px "Ms.Williams"`;
-  const lines = t.text.split('\n'), lh = BASE * 1.08;
+  ctx.save(); ctx.font = `${BASE}px ${isRiot(t) ? riotFont(t) : '"Ms.Williams"'}`;
+  const lines = t.text.split('\n'), lh = BASE * (isRiot(t) ? 1.15 : 1.08);
   const w = Math.max(...lines.map(l => ctx.measureText(l).width), BASE * .5);
   ctx.restore();
   return { lines, lh, w: w + BASE * .3, h: lines.length * lh + BASE * .3 };
@@ -521,7 +538,7 @@ function drawItem(g, t, px) {
   } else {
     const m = textMetrics(t);
     g.textAlign = 'center'; g.textBaseline = 'middle';
-    [['"Ms.Williams Layer"', INK], ['"Ms.Williams"', t.color]].forEach(([font, col]) => {
+    (isRiot(t) ? [[riotFont(t), t.color]] : [['"Ms.Williams Layer"', INK], ['"Ms.Williams"', t.color]]).forEach(([font, col]) => {
       g.font = `${BASE}px ${font}`; g.fillStyle = col;
       m.lines.forEach((l, i) => g.fillText(l, 0, (i - (m.lines.length - 1) / 2) * m.lh));
     });
@@ -781,7 +798,7 @@ canvas.addEventListener('wheel', e => {        // computer: scroll to resize a p
 }, { passive: false });
 
 /* ---------- Instagram-style text editor ---------- */
-let editing = null, color = COLORS[0];
+let editing = null, color = COLORS[0], font = 'msw';
 COLORS.forEach(c => {
   const b = document.createElement('button'); b.type = 'button'; b.style.background = c; b.setAttribute('aria-label', 'Colour ' + c);
   b.onclick = () => { color = c; syncEditor(); $('tInput').focus(); };
@@ -794,9 +811,15 @@ function syncEditor() {
   $('typebox').style.setProperty('--fs', Math.max(30, Math.min(64, 520 / len)) + 'px');
   $('typebox').style.setProperty('--tc', color);
   $('tcolors').querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-pressed', String(COLORS[i] === color)));
+  const riot = font !== 'msw';
+  $('typebox').classList.toggle('riot', riot);
+  $('typebox').style.setProperty('--tf', riot ? `'Riot ${font}'` : '');
+  $('tfonts').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.font === font)));
+  $('thint').textContent = riot ? 'Riot is capitals only. Lowercase types capitals too.' : '{ = devil, } = HW logo, <3 = heart';
 }
+$('tfonts').querySelectorAll('button').forEach(b => b.onclick = () => { font = b.dataset.font; syncEditor(); $('tInput').focus(); });
 function openEditor(t) {
-  editing = t || null; color = t ? t.color : color;
+  editing = t || null; color = t ? t.color : color; font = t ? (t.font || 'msw') : font;
   $('tInput').value = t ? t.text : '';
   $('editor').hidden = false; syncEditor();
   $('tInput').focus();                          // in the same tap, or iPhone won't show the keyboard
@@ -804,11 +827,11 @@ function openEditor(t) {
 function closeEditor() {
   const v = $('tInput').value.replace(/\s+$/, '');
   if (editing) {
-    if (v) { editing.text = v; editing.color = color; active = editing; } else removePiece(editing);
+    if (v) { editing.text = v; editing.color = color; editing.font = font; active = editing; } else removePiece(editing);
   } else if (v) {
     const f = frameRect(), n = layers.filter(x => x.kind === 'text').length;
     const y = photoMode === 'full' ? H * (.78 - (n % 3) * .07) : Math.min(H * .9, f.y + f.h + H * .09 + (n % 3) * H * .07);
-    const t = { kind: 'text', text: v, color, x: W / 2, y, scale: 1, rot: -.05 };
+    const t = { kind: 'text', text: v, color, font, x: W / 2, y, scale: 1, rot: -.05 };
     const m = textMetrics(t); t.scale = Math.min(1.6, (W * .84) / m.w);
     layers.push(t); active = t;
   }
@@ -856,7 +879,7 @@ new ResizeObserver(fit).observe($('stagewrap'));   // window size, the options b
 refresh(); fit();
 Promise.all([
   loadImg('paper', 'assets/poster-paper.webp'),
-  ...['130px "Ms.Williams"', '130px "Ms.Williams Layer"'].map(f => document.fonts.load(f).catch(() => null)),
+  ...['130px "Ms.Williams"', '130px "Ms.Williams Layer"', '130px "Riot Marker"', '130px "Riot Scrawl"', '130px "Riot Scribble"'].map(f => document.fonts.load(f).catch(() => null)),
 ]).then(draw);
 })();
 </script>
